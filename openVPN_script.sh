@@ -67,3 +67,10 @@ pwd
 bash $easy_rsa/easyrsa init-pki
 
 # Step 3
+# Creating an OpenVPN Server Certificate Request and Private Key
+# Run to the easyrsa with the gen-req option followed by a Common Name (CN) for the machine.
+read -p 'OpenVPN Server’s CN: ' CN
+read -p 'Write "nopass" for no-password or just press enter: ' nop
+$easy_rsa/easyrsa gen-req $CN $nop              # For example $1 server
+
+sudo cp -v $easy_rsa/pki/private/server.key /etc/openvpn/server/
