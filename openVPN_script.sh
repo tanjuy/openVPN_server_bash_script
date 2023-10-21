@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+!/usr/bin/env bash
 
 # Variables;
 easy_rsa="/home/$USER/easy-rsa"
@@ -74,3 +74,14 @@ read -p 'Write "nopass" for no-password or just press enter: ' nop
 $easy_rsa/easyrsa gen-req $CN $nop              # For example $1 server
 
 sudo cp -v $easy_rsa/pki/private/server.key /etc/openvpn/server/
+
+# Step 4;
+# Once the CA validates and relays the certificate back to the OpenVPN server, clients that trust your CA will be
+# able to trust the OpenVPN server as well.
+# use SCP or another transfer method to copy the server.req certificate request to the CA server for signing:
+
+read -p "Enter a target user(i.e: tanju): " user
+read -p "Enter a target IP(i.e: 192.168.1.5): " IP
+echo "${cyan}$CN.req ----> $user@IP:/tmp{normal}"
+sleep 3
+scp $easy_rsa/pki/reqs/$CN.req $user@$IP:/tmp
