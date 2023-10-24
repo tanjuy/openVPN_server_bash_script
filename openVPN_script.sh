@@ -1,4 +1,4 @@
-!/usr/bin/env bash
+#!/usr/bin/env bash
 
 # Variables;
 easy_rsa="/home/$USER/easy-rsa"
@@ -25,9 +25,6 @@ if [ -t 1 ]; then    # if terminal
 fi
 
 
-echo $easy_rsa
-
-
 # System update and To install OpenVPN and Easy-RSA
 # Easy-RSA is a public key infrastructure (PKI) management tool
 echo "${yellow}${bold} System will be updated also install openvpn  and easy-rsa ;) $normal"
@@ -47,7 +44,22 @@ else
 fi
 # To create a symlink from the easyrsa script that the package installed into the ~/easy-rsa directory
 sleep 1
-ln -s /usr/share/easy-rsa/* $easy_rsa
+
+# To use this directory to create symbolic links pointing to the easy-rsa package files that we’ve installed in the previous step.
+:<< test_command_alternative
+if [[    # ------------------------------->   This is same as below if [  ] that is, test command
+        -h "$easy_rsa/easyrsa" &&
+        -L "$easy_rsa/openssl-easyrsa.cnf"
+   ]]; then
+test_command_alternative
+
+if [ -h "$easy_rsa/easyrsa" -a -h "$easy_rsa/openssl-easyrsa.cnf" ]; then
+        echo "A symlink have already created with $easy_rsa"
+else
+        ln -s /usr/share/easy-rsa/* ${easy_rsa}
+        sleep 1
+        echo "/usr/share/easy-rsa/*   ------>   ${easy_rsa} (symlinked)"
+fi
 
 # The directory’s owner is your non-root sudo user and restrict access to that user
 sudo chown $USER $easy_rsa
@@ -73,7 +85,7 @@ read -p 'OpenVPN Server’s CN: ' CN
 read -p 'Write "nopass" for no-password or just press enter: ' nop
 $easy_rsa/easyrsa gen-req $CN $nop              # For example $1 server
 
-sudo cp -v $easy_rsa/pki/private/server.key /etc/openvpn/server/
+sudo cp -v $easy_rsa/pki/private/$CN.key /etc/openvpn/server/
 
 # Step 4;
 # Once the CA validates and relays the certificate back to the OpenVPN server, clients that trust your CA will be
@@ -82,6 +94,6 @@ sudo cp -v $easy_rsa/pki/private/server.key /etc/openvpn/server/
 
 read -p "Enter a target user(i.e: tanju): " user
 read -p "Enter a target IP(i.e: 192.168.1.5): " IP
-echo "${cyan}$CN.req ----> $user@IP:/tmp{normal}"
+echo "${cyan}$CN.req ----> $user@IP:/tmp${normal}"
 sleep 3
 scp $easy_rsa/pki/reqs/$CN.req $user@$IP:/tmp
