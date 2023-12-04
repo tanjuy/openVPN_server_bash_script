@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 
+
 # Variables;
 easy_rsa="/home/$USER/easy-rsa"
 
