@@ -27,6 +27,13 @@ if [ -t 1 ]; then    # if terminal
 fi
 
 
+excute_remote () {
+	ssh $1@$2 "bash -s <  script"
+}
+
+
+
+
 # System update and To install OpenVPN and Easy-RSA
 # Easy-RSA is a public key infrastructure (PKI) management tool
 echo "${yellow}${bold} System will be updated also install openvpn  and easy-rsa ;) $normal"
@@ -84,8 +91,8 @@ bash $easy_rsa/easyrsa init-pki
 # Creating an OpenVPN Server Certificate Request and Private Key
 # Run to the easyrsa with the gen-req option followed by a Common Name (CN) for the machine.
 read -p 'OpenVPN Server’s CN: ' CN
-read -p 'Write "nopass" for no-password or just press enter: ' nop
-$easy_rsa/easyrsa gen-req $CN $nop              # For example $1 server
+# read -p 'Write "nopass" for no-password or just press enter: ' nop
+$easy_rsa/easyrsa gen-req $CN nopass              # For example $1 server
 
 sudo cp -v $easy_rsa/pki/private/$CN.key /etc/openvpn/server/
 
@@ -96,6 +103,17 @@ sudo cp -v $easy_rsa/pki/private/$CN.key /etc/openvpn/server/
 
 read -p "Enter a target user(i.e: tanju): " user
 read -p "Enter a target IP(i.e: 192.168.1.5): " IP
-echo "${cyan}$CN.req ----> $user@IP:/tmp${normal}"
+echo "${cyan}$CN.req ----> $user@$IP:/tmp${normal}"
 sleep 3
-scp $easy_rsa/pki/reqs/$CN.req $user@$IP:/tmp
+ssh-copy-id -i ~/.ssh/id_rsa.pub $user@$IP
+scp -i ~/.ssh/id_rsa.pub $easy_rsa/pki/reqs/$CN.req $user@$IP:/tmp
+
+ssh -i ~/.ssh/id_rsa.pub $user@$IP "bash -s <  script1"
+
+
+# pki yolu konrol edilmelidir!!!!!!!!!!!!!!!!!!!
+scp -i ~/.ssh/id_rsa.pub $user@$IP:easy_rsa/pki/issued/server.crt /tmp
+scp -i ~/.ssh/id_rsa.pub $user@$IP:easy_rsa/pki/ca.crt /tmp 
+
+sudo cp /tmp/{server.crt,ca.crt} /etc/openvpn/server
+
