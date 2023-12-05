@@ -27,11 +27,6 @@ if [ -t 1 ]; then    # if terminal
 fi
 
 
-excute_remote () {
-	ssh $1@$2 "bash -s <  script"
-}
-
-
 
 
 # System update and To install OpenVPN and Easy-RSA
@@ -41,6 +36,13 @@ sleep 1
 sudo apt update
 sudo apt install openvpn easy-rsa
 
+
+read -p "Enter a target user(i.e: tanju): " user
+read -p "Enter a target IP(i.e: 192.168.1.5): " IP
+ssh-copy-id -i ~/.ssh/id_rsa.pub $user@$IP
+
+ssh -i ~/.ssh/id_rsa.pub $user@$IP "git clone https://github.com/tanjuy/Certificate_Authority_Server_Script.git" 
+ssh -i ~/.ssh/id_rsa.pub $user@$IP "bash Certificate_Authority_Server_Script/Certificate_Authority_Server.sh" 
 
 # To create a new directory on the OpenVPN Server
 echo 'creating the easy-rsa directory...'
@@ -101,19 +103,18 @@ sudo cp -v $easy_rsa/pki/private/$CN.key /etc/openvpn/server/
 # able to trust the OpenVPN server as well.
 # use SCP or another transfer method to copy the server.req certificate request to the CA server for signing:
 
-read -p "Enter a target user(i.e: tanju): " user
-read -p "Enter a target IP(i.e: 192.168.1.5): " IP
 echo "${cyan}$CN.req ----> $user@$IP:/tmp${normal}"
 sleep 3
-ssh-copy-id -i ~/.ssh/id_rsa.pub $user@$IP
 scp -i ~/.ssh/id_rsa.pub $easy_rsa/pki/reqs/$CN.req $user@$IP:/tmp
 
-ssh -i ~/.ssh/id_rsa.pub $user@$IP "bash -s <  script1"
-
+ssh -i ~/.ssh/id_rsa.pub $user@$IP "bash ${easy_rsa}/easyrsa import-req /tmp/$CN.req $CN"
+ssh -i ~/.ssh/id_rsa.pub $user@$IP "cat << EOF | bash ${easy_rsa}/easyrsa sign-req $CN $CN yes EOF"
 
 # pki yolu konrol edilmelidir!!!!!!!!!!!!!!!!!!!
-scp -i ~/.ssh/id_rsa.pub $user@$IP:easy_rsa/pki/issued/server.crt /tmp
+scp -i ~/.ssh/id_rsa.pub $user@$IP:easy_rsa/pki/issued/$CN.crt /tmp
 scp -i ~/.ssh/id_rsa.pub $user@$IP:easy_rsa/pki/ca.crt /tmp 
 
-sudo cp /tmp/{server.crt,ca.crt} /etc/openvpn/server
+sudo cp /tmp/{$CN.crt,ca.crt} /etc/openvpn/server
+
+
 
