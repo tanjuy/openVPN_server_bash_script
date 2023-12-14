@@ -96,11 +96,11 @@ bash $easy_rsa/easyrsa init-pki
 # Step 3
 # Creating an OpenVPN Server Certificate Request and Private Key
 # Run to the easyrsa with the gen-req option followed by a Common Name (CN) for the machine.
-read -p 'OpenVPN Server’s CN (i.e: server): ' CN
+read -p 'OpenVPN Server’s CN (i.e: server): ' CN_server
 # read -p 'Write "nopass" for no-password or just press enter: ' nop
-$easy_rsa/easyrsa gen-req $CN nopass              # For example $1 server
+$easy_rsa/easyrsa gen-req $CN_server nopass              # For example $1 server
 
-sudo cp -v $easy_rsa/pki/private/$CN.key /etc/openvpn/server/
+sudo cp -v $easy_rsa/pki/private/$CN_server.key /etc/openvpn/server/
 
 # Step 4;
 # Once the CA validates and relays the certificate back to the OpenVPN server, clients that trust your CA will be
@@ -109,16 +109,16 @@ sudo cp -v $easy_rsa/pki/private/$CN.key /etc/openvpn/server/
 
 echo "${cyan}$CN.req ----> $CA_user@$CA_IP:/tmp${normal}"
 sleep 3
-scp -i  $easy_rsa/pki/reqs/$CN.req $CA_user@$CA_IP:/tmp
+scp -i  $easy_rsa/pki/reqs/$CN_server.req $CA_user@$CA_IP:/tmp
 
-ssh -i ${pathSSH}/id_rsa $CA_user@$CA_IP "bash ${easy_rsa}/easyrsa import-req /tmp/$CN.req $CN"
-ssh -i ${pathSSH}/id_rsa $CA_user@$CA_IP "cat << EOF | bash ${easy_rsa}/easyrsa sign-req $CN $CN yes EOF"
+ssh -i ${pathSSH}/id_rsa $CA_user@$CA_IP "bash ${easy_rsa}/easyrsa import-req /tmp/$CN_server.req $CN_server"
+ssh -i ${pathSSH}/id_rsa $CA_user@$CA_IP "cat << EOF | bash ${easy_rsa}/easyrsa sign-req $CN_server $CN_server yes EOF"
 
 # pki yolu konrol edilmelidir!!!!!!!!!!!!!!!!!!!
-scp -i ${pathSSH}/id_rsa $CA_user@$CA_IP:easy_rsa/pki/issued/$CN.crt /tmp
+scp -i ${pathSSH}/id_rsa $CA_user@$CA_IP:easy_rsa/pki/issued/$CN_server.crt /tmp
 scp -i ${pathSSH}/id_rsa $CA_user@$CA_IP:easy_rsa/pki/ca.crt /tmp 
 
-sudo cp /tmp/{$CN.crt,ca.crt} /etc/openvpn/server
+sudo cp /tmp/{$CN_server.crt,ca.crt} /etc/openvpn/server
 
 # Step 5 --------->
 openvpn --genkey --secret ta.key
@@ -128,11 +128,20 @@ sudo cp ta.key /etc/openvpn/server
 mkdir -p ~/client-configs/keys
 chmod -R 700 ~/client-configs
 
-read -p "Please enter the common name for the client(i.e:client1) :" clientCN
-$easy_rsa/easyrsa gen-req $clientCN nopass
+read -p "Please enter the common name for the client(i.e:client1) :" CN_client
+$easy_rsa/easyrsa gen-req $CN_client nopass
 
-cp ${easy_rsa}/pki/private/client1.key ~/client-configs/keys
-scp -i  ${pathSSH}/id_rsa ${easy_rsa}/pki/reqs/client1.req $CA_user@$CA_IP:/tmp
+cp ${easy_rsa}/pki/private/$CN_client.key ~/client-configs/keys
+scp -i  ${pathSSH}/id_rsa ${easy_rsa}/pki/reqs/$CN_client.req $CA_user@$CA_IP:/tmp
 
 
+ssh -i ${pathSSH}/id_rsa $CA_user@$CA_IP "bash ${easy_rsa}/easyrsa import-req /tmp/$CN_client.req $CN_client"
+ssh -i ${pathSSH}/id_rsa $CA_user@$CA_IP "cat << EOF | bash ${easy_rsa}/easyrsa sign-req client $CN_client yes EOF"
 
+scp -i ${pathSSH}/id_rsa $CA_user@$CA_IP:easy_rsa/pki/$CN_client ~/client-configs/keys
+
+cp $easy_rsa/ta.key ~/client-configs/keys/
+sudo cp /etc/openvpn/server/ca.crt ~/client-configs/keys/
+sudo chown $USER.$USER ~/client-configs/keys/*
+
+# Step 7 ----------->
